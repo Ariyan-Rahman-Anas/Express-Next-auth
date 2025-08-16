@@ -3,6 +3,7 @@ import { UserModel } from "../User/user.model";
 import { enVariables } from "../../config/env.config";
 import { tokenProvider } from "../../utils/tokenProvider";
 import { setAuthCookie } from "../../utils/cookieSetter";
+import { authServices } from "./auth.service";
 
 const login = async (req: Request, res: Response) => {
     try {
@@ -37,6 +38,29 @@ const login = async (req: Request, res: Response) => {
 }
 
 
+const getNewAccessToken = async (req: Request, res: Response) => {
+    try {
+        const refreshToken = req.cookies.refreshToken
+        if (!refreshToken) {
+            throw new Error("Unauthenticated!")
+        }
+        const tokenInfo = await authServices.getNewAccessToken(refreshToken)
+        setAuthCookie(res, tokenInfo)
+        res.status(200).json({
+            success: true,
+            message: "New Access Token Retrieved!",
+            data: tokenInfo
+        })
+        
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: (error as any).message
+        })
+    }
+}
+
+
 const logout = async (req: Request, res: Response) => {
     res.clearCookie("accessToken", {
         httpOnly: true,
@@ -55,27 +79,8 @@ const logout = async (req: Request, res: Response) => {
 }
 
 
-// const logout = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-//     res.clearCookie("accessToken", {
-//         httpOnly: true,
-//         secure: false,
-//         sameSite: "lax"
-//     })
-//     res.clearCookie("refreshToken", {
-//         httpOnly: true,
-//         secure: false,
-//         sameSite: "lax"
-//     })
-
-//     sendResponse(res, {
-//         statusCode: httpStatus.OK,
-//         success: true,
-//         message: "Logged Out!",
-//         data: null
-//     })
-// })
-
 export const authControllers = {
     login,
+    getNewAccessToken,
     logout
 }
